@@ -55,7 +55,7 @@ Now create a table and its columns to store `username` data:
 ```sql
 CREATE TABLE usernames (
    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-   username VARCHAR ( 255 ) 
+   username VARCHAR ( 255 )
 );
 ```
 
@@ -102,28 +102,29 @@ npm install pg
 We can then initialize it in our application with the necessary connection information. Create a `db` folder, and a new file `db/pool.js` with:
 
 ```javascript
-const { Pool } = require("pg");
+const { Pool } = require('pg')
 
 // All of the following properties should be read from environment variables
 // We're hardcoding them here for simplicity
 module.exports = new Pool({
-  host: "localhost", // or wherever the db is hosted
-  user: "<role_name>",
-  database: "top_users",
-  password: "<role_password>",
-  port: 5432 // The default port
-});
+  host: 'localhost', // or wherever the db is hosted
+  user: '<role_name>',
+  database: 'top_users',
+  password: '<role_password>',
+  port: 5432, // The default port
+})
 ```
 
 An alternative to defining the connection information is through a [Connection URI](https://node-postgres.com/features/connecting#connection-uri). You'll likely be using connection URIs when connecting with a hosted database service. Here's what it would look like based on the above properties:
 
 ```javascript
-const { Pool } = require("pg");
+const { Pool } = require('pg')
 
 // Again, this should be read from an environment variable
 module.exports = new Pool({
-  connectionString: "postgresql://<role_name>:<role_password>@localhost:5432/top_users"
-});
+  connectionString:
+    'postgresql://<role_name>:<role_password>@localhost:5432/top_users',
+})
 ```
 
 Pick whichever method you want to use and let's continue.
@@ -145,21 +146,21 @@ Enter pool. As the name suggests, it's a pool of clients. A pool holds onto conn
 With our initialized `Pool`, we can use the `query` method. Create a new `db/queries.js` file. Upon revising our project requirements, we understand we need two db interactions: getting all usernames and inserting a new username. Let's define these functions:
 
 ```javascript
-const pool = require("./pool");
+const pool = require('./pool')
 
 async function getAllUsernames() {
-  const { rows } = await pool.query("SELECT * FROM usernames");
-  return rows;
+  const { rows } = await pool.query('SELECT * FROM usernames')
+  return rows
 }
 
 async function insertUsername(username) {
-  await pool.query("INSERT INTO usernames (username) VALUES ($1)", [username]);
+  await pool.query('INSERT INTO usernames (username) VALUES ($1)', [username])
 }
 
 module.exports = {
   getAllUsernames,
-  insertUsername
-};
+  insertUsername,
+}
 ```
 
 <div class="lesson-note" markdown="1">
@@ -171,7 +172,7 @@ What's with the `$1` in the insert query?
 Alternatively, the query could look like:
 
 ```javascript
-await pool.query("INSERT INTO usernames (username) VALUES ('" + username + "')");
+await pool.query("INSERT INTO usernames (username) VALUES ('" + username + "')")
 ```
 
 We're passing user entered value i.e. `username` directly into our query. A nefarious user could enter something like `sike'); DROP TABLE usernames; --` and wreak havoc. Scary stuff. This is called [SQL injection](https://en.wikipedia.org/wiki/SQL_injection).
@@ -183,12 +184,12 @@ We're passing user entered value i.e. `username` directly into our query. A nefa
 Invoke the above two functions in the specific controllers (you might have different function names etc. The important thing is to understand how the db functions are invoked):
 
 ```javascript
-const db = require("../db/queries");
+const db = require('../db/queries')
 
 async function getUsernames(req, res) {
-  const usernames = await db.getAllUsernames();
-  console.log("Usernames: ", usernames);
-  res.send("Usernames: " + usernames.map(user => user.username).join(", "));
+  const usernames = await db.getAllUsernames()
+  console.log('Usernames: ', usernames)
+  res.send('Usernames: ' + usernames.map((user) => user.username).join(', '))
 }
 
 async function createUsernameGet(req, res) {
@@ -196,16 +197,16 @@ async function createUsernameGet(req, res) {
 }
 
 async function createUsernamePost(req, res) {
-  const { username } = req.body;
-  await db.insertUsername(username);
-  res.redirect("/");
+  const { username } = req.body
+  await db.insertUsername(username)
+  res.redirect('/')
 }
 
 module.exports = {
   getUsernames,
   createUsernameGet,
-  createUsernamePost
-};
+  createUsernamePost,
+}
 ```
 
 Take your app for a spin, hopefully it works as expected.
@@ -217,7 +218,7 @@ You might have noticed how cumbersome it is to create a table and populate it wi
 ```javascript
 #! /usr/bin/env node
 
-const { Client } = require("pg");
+const { Client } = require('pg')
 
 const SQL = `
 CREATE TABLE IF NOT EXISTS usernames (
@@ -230,20 +231,21 @@ VALUES
   ('Bryan'),
   ('Odin'),
   ('Damon');
-`;
+`
 
 async function main() {
-  console.log("seeding...");
+  console.log('seeding...')
   const client = new Client({
-    connectionString: "postgresql://<role_name>:<role_password>@localhost:5432/top_users",
-  });
-  await client.connect();
-  await client.query(SQL);
-  await client.end();
-  console.log("done");
+    connectionString:
+      'postgresql://<role_name>:<role_password>@localhost:5432/top_users',
+  })
+  await client.connect()
+  await client.query(SQL)
+  await client.end()
+  console.log('done')
 }
 
-main();
+main()
 ```
 
 Login to the PostgreSQL shell, connect to the `top_users` db, and drop the `usernames` table:
@@ -265,7 +267,7 @@ We should aim to make our script as independent from our codebase as possible.
 A far more painless approach is providing the connection information as an argument to the script. This way, we can run the script for local db as well as production db on our machine. You can access arguments via [process.argv](https://nodejs.org/docs/latest/api/process.html#processargv).
 
 ```bash
-# populating local db 
+# populating local db
 node db/populatedb.js <local-db-url>
 
 # populating production db
@@ -279,9 +281,9 @@ node db/populatedb.js <production-db-url>
 
 1. Skim through [pg's documentation](https://node-postgres.com/). The library itself is light, and so is their documentation. You don't need to read everything, use it mainly as a reference.
 1. Update the above project we've been working on.
-    1. Install `dotenv` package and implement environment variables for db connection information.
-    1. Add search functionality via query parameters on the index route. For example, `GET /?search=sup` should return all usernames containing `sup`. DON'T implement this in JavaScript, search should be done in SQL.
-    1. Add a new route `GET /delete` to delete all usernames from the db.
+   1. Install `dotenv` package and implement environment variables for db connection information.
+   1. Add search functionality via query parameters on the index route. For example, `GET /?search=sup` should return all usernames containing `sup`. DON'T implement this in JavaScript, search should be done in SQL.
+   1. Add a new route `GET /delete` to delete all usernames from the db.
 1. In our previous Mini Message Board project, we implemented ephemeral messages using an array i.e. the messages would reset when server restarted. We want data persistence. Go back to this project and implement it with a PostgreSQL db and `pg`.
    - Deploy a new db on a hosting service you choose, and obtain its connection information.
    - Create a `messages` table, populate it with data if you wish. This should be done via a script.
@@ -303,4 +305,4 @@ The following questions are an opportunity to reflect on key topics in this less
 
 This section contains helpful links to related content. It isn't required, so consider it supplemental.
 
-- It looks like this lesson doesn't have any additional resources yet. Help us expand this section by contributing to our curriculum.
+- Deep dive into [PostgreSQL](https://www.postgresqltutorial.com/) to learn more.
